@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>نظام الحجوزات - متجر سلة</title>
+    <link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+    <h1>حجز موعد جديد</h1>
+    
+    <div id="calendar"></div>
+    
+    <div id="booking-form">
+        <h2>تفاصيل الحجز</h2>
+        <form id="appointment-form">
+            <div>
+                <label>الاسم:</label>
+                <input type="text" name="name" required>
+            </div>
+            <div>
+                <label>رقم الجوال:</label>
+                <input type="tel" name="phone" required>
+            </div>
+            <div>
+                <label>البريد الإلكتروني:</label>
+                <input type="email" name="email">
+            </div>
+            <div>
+                <label>التاريخ:</label>
+                <input type="date" name="date" id="selected-date" required>
+            </div>
+            <div>
+                <label>الوقت:</label>
+                <select name="time" id="available-times" required></select>
+            </div>
+            <div>
+                <label>ملاحظات:</label>
+                <textarea name="notes"></textarea>
+            </div>
+            <button type="submit">تأكيد الحجز</button>
+        </form>
+    </div>
+    
+    <script src="calendar.js"></script>
+    <script>
+        // تهيئة التقويم
+        initCalendar();
+        
+        // تحديث الأوقات المتاحة عند اختيار تاريخ
+        document.getElementById('selected-date').addEventListener('change', function(e) {
+            const date = e.target.value;
+            getAvailableTimesForDate(date);
+        });
+        
+        // إرسال نموذج الحجز
+        document.getElementById('appointment-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const appointmentData = {
+                customer_name: formData.get('name'),
+                customer_phone: formData.get('phone'),
+                customer_email: formData.get('email'),
+                date: formData.get('date'),
+                time: formData.get('time'),
+                notes: formData.get('notes')
+            };
+            
+            createAppointment(appointmentData)
+                .then(result => {
+                    if (result.success) {
+                        alert('تم الحجز بنجاح! رقم الحجز: ' + result.data.id);
+                        e.target.reset();
+                    } else {
+                        alert('حدث خطأ: ' + result.error.message);
+                    }
+                });
+        });
+        
+        // الحصول على الأوقات المتاحة ليوم معين
+        async function getAvailableTimesForDate(date) {
+            const token = localStorage.getItem('salla_access_token');
+            
+            const response = await fetch(`https://api.salla.dev/admin/v2/appointments/available-times?date=${date}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const data = await response.json();
+            
+            // تحديث قائمة الأوقات المتاحة
+            const timesSelect = document.getElementById('available-times');
+            timesSelect.innerHTML = '';
+            
+            data.data.forEach(timeSlot => {
+                const option = document.createElement('option');
+                option.value = timeSlot.value;
+                option.textContent = timeSlot.label;
+                timesSelect.appendChild(option);
+            });
+        }
+        
+        // دالة لإنشاء حجز جديد (كما تم تعريفها سابقاً)
+        // ...
+    </script>
+</body>
+</html>
